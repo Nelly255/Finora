@@ -1,26 +1,1655 @@
-@import "tailwindcss";
+/* =========================
+   GLOBALS (Tailwind-free)
+   ========================= */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Gradients & Backgrounds */
+  --bg1: rgba(0, 180, 255, 0.18);
+  --bg2: rgba(140, 50, 255, 0.18);
+
+  --text: rgba(255, 255, 255, 0.95);
+  --muted: rgba(255, 255, 255, 0.60);
+
+  /* Dark Theme Glass Variables */
+  --card-bg: rgba(18, 22, 30, 0.30);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+
+  --input-bg: rgba(0, 0, 0, 0.2);
+  --input-border: rgba(255, 255, 255, 0.1);
+
+  --shadow: 0 40px 80px -10px rgba(0, 0, 0, 0.6);
+  --radius: 24px;
+
+  /* Theme vars */
+  --bg0: #05070c;
+  --bg1v: #0b1220;
+  --bg2v: #140b2a;
+
+  --card: rgba(255, 255, 255, 0.04);
+  --card-border2: rgba(255, 255, 255, 0.08);
+
+  --input: rgba(255, 255, 255, 0.06);
+  --input-border2: rgba(255, 255, 255, 0.12);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html[data-theme="light"] {
+  --text: rgba(10, 12, 16, 0.92);
+  --muted: rgba(10, 12, 16, 0.62);
+
+  --card-bg: rgba(255, 255, 255, 0.55);
+  --card-border: rgba(255, 255, 255, 0.4);
+  --card-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+
+  --input-bg: rgba(255, 255, 255, 0.5);
+  --input-border: rgba(0, 0, 0, 0.06);
+
+  --shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.12);
+
+  /* Theme vars */
+  --bg0: #f4f7ff;
+  --bg1v: #e9f3ff;
+  --bg2v: #f5eaff;
+
+  --card: rgba(255, 255, 255, 0.65);
+  --card-border2: rgba(0, 0, 0, 0.05);
+
+  --input: rgba(255, 255, 255, 0.92);
+  --input-border2: rgba(0, 0, 0, 0.10);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  color: var(--text);
+  background:
+    radial-gradient(1400px 900px at 20% 10%, var(--bg1), transparent 60%),
+    radial-gradient(1200px 800px at 80% 20%, var(--bg2), transparent 60%),
+    radial-gradient(1200px 700px at 50% 90%, rgba(0, 0, 0, 0.8), transparent 55%),
+    #05070b;
+
+  background:
+    radial-gradient(1400px 1000px at 10% 10%, var(--bg1v), transparent 70%),
+    radial-gradient(1400px 1000px at 90% 20%, var(--bg2v), transparent 70%),
+    linear-gradient(180deg, var(--bg0), var(--bg2v));
+    
+  background-attachment: fixed;
+}
+
+/* ===== layout helpers ===== */
+
+.container {
+  width: min(1200px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+.stack-16 > * + * { margin-top: 16px; }
+.stack-24 > * + * { margin-top: 24px; }
+.stack-32 > * + * { margin-top: 32px; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ===== glass card ===== */
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: 
+    var(--shadow),
+    var(--card-highlight);
+  
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-pad {
+  padding: 24px;
+}
+
+.card-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px 0;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.card-subtitle {
+  margin: 0 0 16px 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.glass {
+  background: var(--card);
+  border: 1px solid var(--card-border2);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  box-shadow: var(--shadow);
+}
+
+/* ===== auth centered shell ===== */
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
+}
+
+.auth-card {
+  width: min(520px, 100%);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+}
+
+/* ===== controls ===== */
+
+.input {
+  width: 100%;
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  box-sizing: border-box;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.05),
+    0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="light"] .input:focus {
+  border-color: rgba(0,0,0,0.2);
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.02),
+    0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.input {
+  background: var(--input);
+  border: 1px solid var(--input-border2);
+  color: var(--text);
+}
+
+.btn {
+  border: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.btn:active {
+  transform: scale(0.95);
+  filter: brightness(0.9);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: rgba(255, 255, 255, 0.95);
+  color: #000;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary:hover {
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(255, 255, 255, 0.3);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+html[data-theme="light"] .btn-primary {
+  background: #111;
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  transition: opacity 0.2s;
+  padding-bottom: 1px;
+}
+.link:hover {
+  opacity: 0.7;
+  border-color: rgba(255,255,255,0.6);
+}
+
+/* ===== dashboard stats grid ===== */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 980px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--text) 30%, var(--muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: var(--text);
+}
+
+/* ===== two column dashboard sections ===== */
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 20px;
+}
+
+@media (max-width: 980px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== pill segmented buttons ===== */
+
+.seg {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.seg button {
+  border: 0;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.seg button:hover {
+  color: var(--text);
+}
+
+.seg button.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+html[data-theme="light"] .seg button.active {
+  background: #fff;
+  color: #000;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+/* ===== floating bar (REFLECTIVE & ANIMATED) ===== */
+
+/* Default Desktop Styles */
+.floating-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  width: min(1100px, calc(100% - 32px));
+  padding: 10px 14px;
+  border-radius: 999px;
+  
+  /* Reflection Logic - Deepened Blur (50px) */
+  background: rgba(10, 12, 18, 0.65) !important;
+  backdrop-filter: blur(100px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(100px) saturate(220%) contrast(150%) !important;
+  
+  /* Shiny Glass Edge */
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 40px rgba(255, 255, 255, 0.03) !important;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 1000;
+  
+  /* Initial Position for Animation */
+  transform: translateX(-50%);
+  opacity: 0; 
+  
+  /* Dual Animation: Entrance + Floating Bob */
+  animation: 
+    floatUp 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards,
+    floatingLoop 6s ease-in-out infinite 0.8s;
+
+  transition: 
+    background 0.3s ease, 
+    box-shadow 0.3s ease,
+    transform 0.3s ease,
+    backdrop-filter 0.3s ease;
+    
+  will-change: backdrop-filter, transform;
+}
+
+/* Hover: Levitate Higher + Glow */
+.floating-bar:hover {
+  background: rgba(15, 18, 26, 0.3) !important;
+  backdrop-filter: blur(60px) saturate(250%) !important;
+  -webkit-backdrop-filter: blur(60px) saturate(250%) !important;
+  box-shadow:
+    0 40px 80px -15px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
+    0 0 0 2px rgba(255, 255, 255, 0.05) !important;
+  
+  animation-play-state: paused;
+}
+
+/* Entrance */
+@keyframes floatUp {
+  0% { opacity: 0; transform: translate(-50%, 60px) scale(0.95); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+/* Continuous "Breathing" Motion */
+@keyframes floatingLoop {
+  0% { transform: translate(-50%, 0px); }
+  50% { transform: translate(-50%, -8px); }
+  100% { transform: translate(-50%, 0px); }
+}
+
+/* LIGHT MODE OVERRIDE (Milky Reflective) */
+html[data-theme="light"] .floating-bar {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(40px) saturate(180%) contrast(100%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) contrast(100%) !important;
+  
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow:
+    0 25px 40px -10px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* =========================================
+   MOBILE OVERRIDE (Docked & Full Width)
+   ========================================= */
+@media (max-width: 768px) {
+  .floating-bar {
+    width: 100% !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    transform: none !important;
+    border-radius: 0 !important;
+    border-top-left-radius: 20px !important;
+    border-top-right-radius: 20px !important;
+    border: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    padding-left: 20px;
+    padding-right: 20px;
+    animation: slideUpMobile 0.5s ease-out forwards !important;
+    background: rgba(10, 12, 18, 0.85) !important;
+    backdrop-filter: blur(40px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  }
+  
+  html[data-theme="light"] .floating-bar {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-top: 1px solid rgba(0,0,0,0.05) !important;
+  }
+}
+
+@keyframes slideUpMobile {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px 6px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.2s;
+}
+
+.user-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+  border: 1px solid rgba(255,255,255,0.14);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.user-meta {
+  line-height: 1.2;
+}
+.user-meta .name {
+  font-weight: 700;
+  font-size: 13px;
+}
+.user-meta .email {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ===== modal ===== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-card {
+  width: min(680px, 100%);
+  animation: scaleIn 0.2s ease-out;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ===== settings card special ===== */
+.settings-card {
+  background: rgba(20, 18, 18, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.64) !important;
+  backdrop-filter: blur(60px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(60px) saturate(200%) !important;
+}
+
+html[data-theme="light"] .settings-card {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ===== Themed selects (category dropdown) ===== */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: rgba(255, 255, 255, 0.893);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.963);
+  border-radius: 16px;
+  padding: 12px 44px 12px 16px;
+  outline: none;
+  font-size: 14px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+select:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.7) 50%),
+    linear-gradient(135deg, rgba(255,255,255,0.7) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) calc(50% - 3px),
+    calc(100% - 14px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+select option {
+  background: #0b0f16;
+  color: rgba(255,255,255,0.92);
+  padding: 10px;
+}
+html[data-theme="light"] select option {
+  background: #ffffff;
+  color: rgba(0,0,0,0.88);
+}
+
+/* =========================
+   SIGNUP ONLY (scoped)
+   ========================= */
+
+.signup-scope .auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
+}
+
+.signup-scope .auth-card {
+  width: min(520px, 100%);
+}
+
+.signup-scope .card {
+  background: rgba(18, 22, 30, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  box-shadow: 
+    0 40px 100px -20px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  backdrop-filter: blur(60px) saturate(180%);
+  -webkit-backdrop-filter: blur(60px) saturate(180%);
+}
+
+.signup-scope .card-pad {
+  padding: 32px;
+}
+
+.signup-scope .divider::before,
+.signup-scope .divider::after {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+}
+
+.signup-scope .input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.signup-scope .input:focus {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.3);
+}
+
+.signup-scope .btn-primary {
+  background: #fff;
+  color: #000;
+  border-radius: 999px;
+  padding: 14px;
+  font-size: 15px;
+}
+
+html[data-theme="light"] .signup-scope .card {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 30px 80px -20px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+html[data-theme="light"] .signup-scope .input {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* ---------------- AI modal polish ---------------- */
+.ai-modal-card{
+  width: min(760px, 92vw);
+  border-radius: 22px;
+}
+.ai-modal-head{
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.ai-subtitle{
+  margin-top: 4px;
+  font-size: 12.5px;
+  opacity: 0.7;
+}
+.ai-close{
+  border-radius: 999px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+}
+.ai-content{
+  margin-top: 10px;
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 6px;
+}
+.ai-heading{
+  margin-top: 10px;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+.ai-paragraph{
+  margin-top: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  opacity: 0.92;
+}
+.ai-list{
+  margin-top: 10px;
+  padding-left: 18px;
+}
+.ai-list li{
+  margin: 6px 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.ai-muted{ opacity: 0.75; }
+.ai-strong{ font-weight: 800; }
+.ai-skeleton{ margin-top: 10px; }
+.ai-skel-line{
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  margin: 10px 0;
+  position: relative;
+  overflow: hidden;
+}
+.ai-skel-line::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-60%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  animation: aiShimmer 1.1s infinite;
+}
+.ai-skel-line.short{ width: 65%; }
+@keyframes aiShimmer{
+  0%{ transform: translateX(-60%); }
+  100%{ transform: translateX(120%); }
+}
+
+/* Mobile: make it feel like a bottom sheet */
+@media (max-width: 640px){
+  .ai-modal-card{
+    width: 100%;
+    border-radius: 18px;
+  }
+  .modal-overlay{
+    place-items: end center;
+    padding: 12px;
+  }
+  .ai-content{ max-height: 46vh; }
+}
+
+/* If browser doesn't support backdrop-filter, keep it readable */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .floating-bar{
+    background: rgba(12, 12, 16, 0.85) !important;
+  }
+}
+
+
+/* =========================
+   AI Insight Modal (v2)
+   Matches classes used in dashboard page.tsx
+   ========================= */
+
+.ai-modal-overlay{
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  z-index: 2000;
+}
+
+.ai-modal-card{
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(520px, calc(100vh - 120px));
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+  background: rgba(16,18,24,0.70);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,0.70);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+}
+
+/* Header */
+.ai-modal-header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.ai-modal-title{
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.ai-modal-subtitle{
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Close */
+.ai-modal-close{
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+}
+
+/* Body (scroll area) */
+.ai-modal-body{
+  flex: 1;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.ai-modal-text{
+  margin-top: 6px;
+}
+
+.ai-heading{
+  margin-top: 10px;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+
+.ai-paragraph{
+  margin-top: 10px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  opacity: 0.92;
+}
+
+.ai-list{
+  margin-top: 10px;
+  padding-left: 18px;
+}
+
+.ai-list li{
+  margin: 6px 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+/* Loading skeleton (match your markup) */
+.ai-skeleton{ margin-top: 10px; }
+.ai-skeleton-line{
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  margin: 10px 0;
+  position: relative;
+  overflow: hidden;
+}
+.ai-skeleton-line::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-60%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  animation: aiShimmer2 1.1s infinite;
+}
+.ai-skeleton-line.short{ width: 65%; }
+@keyframes aiShimmer2{
+  0%{ transform: translateX(-60%); }
+  100%{ transform: translateX(120%); }
+}
+
+/* Footer actions */
+.ai-modal-actions{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.ai-copy-btn{
+  min-width: 92px;
+}
+
+.ai-generate-btn{
+  min-width: 150px;
+}
+
+/* Mobile: feel like a bottom sheet */
+@media (max-width: 640px){
+  .ai-modal-overlay{
+    place-items: end center;
+    padding: 12px;
+  }
+  .ai-modal-card{
+    width: 100%;
+    max-height: calc(100vh - 90px);
+    border-radius: 18px;
+  }
+  .ai-modal-actions{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ai-copy-btn, .ai-generate-btn{
+    width: 100%;
+  }
+}
+
+/* Optional: nicer scrollbars in the modal */
+.ai-modal-body::-webkit-scrollbar{ width: 10px; }
+.ai-modal-body::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.12);
+  border-radius: 999px;
+}
+.ai-modal-body::-webkit-scrollbar-track{ background: transparent; }
+/* =========================
+   AI Follow-up Chat (Premium)
+   Uses classes from dashboard page.tsx:
+   .ai-followup, .ai-followup-card, .ai-chip, .ai-bubble, etc.
+   ========================= */
+
+.ai-followup{
+  margin-top: 14px;
+}
+
+.ai-followup-toggle{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: rgba(255,255,255,0.88);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 999px;
+  padding: 8px 12px;
+  transition: transform .12s ease, background .18s ease, border-color .18s ease, opacity .18s ease;
+}
+
+.ai-followup-toggle:hover{
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.14);
+}
+
+.ai-followup-toggle:active{
+  transform: translateY(1px);
+}
+
+.ai-followup-toggle:disabled{
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Glass panel */
+.ai-followup-card{
+  margin-top: 10px;
+  background: rgba(14, 16, 22, 0.55);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow:
+    0 30px 70px -40px rgba(0,0,0,0.65),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  animation: aiFollowupIn .18s ease-out;
+}
+
+@keyframes aiFollowupIn{
+  from{ opacity: 0; transform: translateY(6px); }
+  to{ opacity: 1; transform: translateY(0); }
+}
+
+/* Quick prompt chips */
+.ai-followup-chips{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ai-chip{
+  font-size: 12px;
+  line-height: 1;
+  color: rgba(255,255,255,0.86);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 999px;
+  padding: 8px 10px;
+  transition: background .18s ease, border-color .18s ease, transform .12s ease, opacity .18s ease;
+}
+
+.ai-chip:hover{
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.16);
+}
+
+.ai-chip:active{
+  transform: translateY(1px);
+}
+
+.ai-chip:disabled{
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Thread */
+.ai-followup-thread{
+  max-height: 240px;
+  overflow: auto;
+  padding-right: 6px;
+  margin: 10px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Bubbles */
+.ai-bubble{
+  max-width: min(540px, 86%);
+  white-space: pre-wrap;
+  font-size: 13.5px;
+  line-height: 1.55;
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+.ai-bubble.user{
+  margin-left: auto;
+  color: rgba(255,255,255,0.95);
+  background: linear-gradient(135deg, rgba(0,0,0,0.75), rgba(20,20,24,0.75));
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 16px 34px -22px rgba(0,0,0,0.75);
+}
+
+.ai-bubble.assistant{
+  margin-right: auto;
+  color: rgba(255,255,255,0.90);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+/* Input row */
+.ai-followup-inputrow{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ai-followup-input{
+  flex: 1;
+  min-height: 42px;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  color: rgba(255,255,255,0.92);
+  background: rgba(0,0,0,0.40);
+  border: 1px solid rgba(255,255,255,0.12);
+  outline: none;
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  transition: box-shadow .18s ease, border-color .18s ease, background .18s ease, opacity .18s ease;
+}
+
+.ai-followup-input::placeholder{
+  color: rgba(255,255,255,0.55);
+}
+
+.ai-followup-input:focus{
+  background: rgba(0,0,0,0.50);
+  border-color: rgba(255,255,255,0.20);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.10);
+}
+
+.ai-followup-send{
+  border-radius: 14px !important;
+  padding: 10px 14px !important;
+  min-height: 42px;
+  font-size: 13.5px !important;
+}
+
+/* Footer */
+.ai-followup-footer{
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ai-followup-tip{
+  font-size: 12px;
+  color: rgba(255,255,255,0.62);
+}
+
+.ai-followup-clear{
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 999px;
+  padding: 6px 10px;
+  transition: background .18s ease, border-color .18s ease, opacity .18s ease;
+}
+
+.ai-followup-clear:hover{
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.14);
+}
+
+.ai-followup-clear:disabled{
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Light mode tweaks */
+html[data-theme="light"] .ai-followup-toggle{
+  color: rgba(0,0,0,0.78);
+  background: rgba(255,255,255,0.75);
+  border-color: rgba(0,0,0,0.10);
+}
+
+html[data-theme="light"] .ai-followup-card{
+  background: rgba(255,255,255,0.70);
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 30px 80px -30px rgba(0,0,0,0.22);
+}
+
+html[data-theme="light"] .ai-chip{
+  color: rgba(0,0,0,0.78);
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.08);
+}
+
+html[data-theme="light"] .ai-bubble.user{
+  color: rgba(255,255,255,0.95);
+  background: linear-gradient(135deg, rgba(10,10,12,0.90), rgba(35,35,40,0.90));
+  border-color: rgba(0,0,0,0.18);
+}
+
+html[data-theme="light"] .ai-bubble.assistant{
+  color: rgba(0,0,0,0.80);
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.08);
+}
+
+html[data-theme="light"] .ai-followup-input{
+  color: rgba(0,0,0,0.82);
+  background: rgba(255,255,255,0.75);
+  border-color: rgba(0,0,0,0.10);
+}
+
+html[data-theme="light"] .ai-followup-input::placeholder{
+  color: rgba(0,0,0,0.45);
+}
+
+html[data-theme="light"] .ai-followup-clear{
+  color: rgba(0,0,0,0.70);
+  border-color: rgba(0,0,0,0.10);
+}
+
+/* Mobile spacing */
+@media (max-width: 640px){
+  .ai-followup-inputrow{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ai-followup-send{
+    width: 100%;
+  }
+  .ai-bubble{
+    max-width: 92%;
+  }
+}
+
+/* ===== AI FOLLOW-UP: LIGHT THEME OVERRIDES =====
+   Works if your app sets ANY of these on html/body:
+   - class="light" OR class="theme-light"
+   - data-theme="light" OR data-mode="light"
+   - data-color-scheme="light"
+*/
+:root.light .ai-followup-panel,
+:root.light .ai-followup,
+:root.light .ai-followup-card,
+html.light .ai-followup-panel,
+html.light .ai-followup,
+html.light .ai-followup-card,
+body.light .ai-followup-panel,
+body.light .ai-followup,
+body.light .ai-followup-card,
+:root.theme-light .ai-followup-panel,
+:root.theme-light .ai-followup,
+:root.theme-light .ai-followup-card,
+html.theme-light .ai-followup-panel,
+html.theme-light .ai-followup,
+html.theme-light .ai-followup-card,
+body.theme-light .ai-followup-panel,
+body.theme-light .ai-followup,
+body.theme-light .ai-followup-card,
+:root[data-theme="light"] .ai-followup-panel,
+:root[data-theme="light"] .ai-followup,
+:root[data-theme="light"] .ai-followup-card,
+html[data-theme="light"] .ai-followup-panel,
+html[data-theme="light"] .ai-followup,
+html[data-theme="light"] .ai-followup-card,
+body[data-theme="light"] .ai-followup-panel,
+body[data-theme="light"] .ai-followup,
+body[data-theme="light"] .ai-followup-card,
+:root[data-mode="light"] .ai-followup-panel,
+:root[data-mode="light"] .ai-followup,
+:root[data-mode="light"] .ai-followup-card,
+html[data-mode="light"] .ai-followup-panel,
+html[data-mode="light"] .ai-followup,
+html[data-mode="light"] .ai-followup-card,
+body[data-mode="light"] .ai-followup-panel,
+body[data-mode="light"] .ai-followup,
+body[data-mode="light"] .ai-followup-card,
+:root[data-color-scheme="light"] .ai-followup-panel,
+:root[data-color-scheme="light"] .ai-followup,
+:root[data-color-scheme="light"] .ai-followup-card,
+html[data-color-scheme="light"] .ai-followup-panel,
+html[data-color-scheme="light"] .ai-followup,
+html[data-color-scheme="light"] .ai-followup-card,
+body[data-color-scheme="light"] .ai-followup-panel,
+body[data-color-scheme="light"] .ai-followup,
+body[data-color-scheme="light"] .ai-followup-card {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(0, 0, 0, 0.10) !important;
+  color: rgba(0, 0, 0, 0.86) !important;
+}
+
+/* Chips (light) */
+:root.light .ai-chip,
+html.light .ai-chip,
+body.light .ai-chip,
+:root.theme-light .ai-chip,
+html.theme-light .ai-chip,
+body.theme-light .ai-chip,
+:root[data-theme="light"] .ai-chip,
+html[data-theme="light"] .ai-chip,
+body[data-theme="light"] .ai-chip,
+:root[data-mode="light"] .ai-chip,
+html[data-mode="light"] .ai-chip,
+body[data-mode="light"] .ai-chip,
+:root[data-color-scheme="light"] .ai-chip,
+html[data-color-scheme="light"] .ai-chip,
+body[data-color-scheme="light"] .ai-chip {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: rgba(0, 0, 0, 0.78) !important;
+  border: 1px solid rgba(0, 0, 0, 0.10) !important;
+}
+:root.light .ai-chip:hover,
+html.light .ai-chip:hover,
+body.light .ai-chip:hover,
+:root.theme-light .ai-chip:hover,
+html.theme-light .ai-chip:hover,
+body.theme-light .ai-chip:hover,
+:root[data-theme="light"] .ai-chip:hover,
+html[data-theme="light"] .ai-chip:hover,
+body[data-theme="light"] .ai-chip:hover,
+:root[data-mode="light"] .ai-chip:hover,
+html[data-mode="light"] .ai-chip:hover,
+body[data-mode="light"] .ai-chip:hover,
+:root[data-color-scheme="light"] .ai-chip:hover,
+html[data-color-scheme="light"] .ai-chip:hover,
+body[data-color-scheme="light"] .ai-chip:hover {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Chat bubbles (light) */
+:root.light .ai-bubble.user,
+:root.light .ai-msg-user,
+html.light .ai-bubble.user,
+html.light .ai-msg-user,
+body.light .ai-bubble.user,
+body.light .ai-msg-user,
+:root.theme-light .ai-bubble.user,
+:root.theme-light .ai-msg-user,
+html.theme-light .ai-bubble.user,
+html.theme-light .ai-msg-user,
+body.theme-light .ai-bubble.user,
+body.theme-light .ai-msg-user,
+:root[data-theme="light"] .ai-bubble.user,
+:root[data-theme="light"] .ai-msg-user,
+html[data-theme="light"] .ai-bubble.user,
+html[data-theme="light"] .ai-msg-user,
+body[data-theme="light"] .ai-bubble.user,
+body[data-theme="light"] .ai-msg-user,
+:root[data-mode="light"] .ai-bubble.user,
+:root[data-mode="light"] .ai-msg-user,
+html[data-mode="light"] .ai-bubble.user,
+html[data-mode="light"] .ai-msg-user,
+body[data-mode="light"] .ai-bubble.user,
+body[data-mode="light"] .ai-msg-user,
+:root[data-color-scheme="light"] .ai-bubble.user,
+:root[data-color-scheme="light"] .ai-msg-user,
+html[data-color-scheme="light"] .ai-bubble.user,
+html[data-color-scheme="light"] .ai-msg-user,
+body[data-color-scheme="light"] .ai-bubble.user,
+body[data-color-scheme="light"] .ai-msg-user {
+  background: linear-gradient(135deg, #111, #222) !important;
+  color: #fff !important;
+}
+
+/* Assistant bubble light */
+:root.light .ai-bubble.assistant,
+:root.light .ai-msg-ai,
+html.light .ai-bubble.assistant,
+html.light .ai-msg-ai,
+body.light .ai-bubble.assistant,
+body.light .ai-msg-ai,
+:root.theme-light .ai-bubble.assistant,
+:root.theme-light .ai-msg-ai,
+html.theme-light .ai-bubble.assistant,
+html.theme-light .ai-msg-ai,
+body.theme-light .ai-bubble.assistant,
+body.theme-light .ai-msg-ai,
+:root[data-theme="light"] .ai-bubble.assistant,
+:root[data-theme="light"] .ai-msg-ai,
+html[data-theme="light"] .ai-bubble.assistant,
+html[data-theme="light"] .ai-msg-ai,
+body[data-theme="light"] .ai-bubble.assistant,
+body[data-theme="light"] .ai-msg-ai,
+:root[data-mode="light"] .ai-bubble.assistant,
+:root[data-mode="light"] .ai-msg-ai,
+html[data-mode="light"] .ai-bubble.assistant,
+html[data-mode="light"] .ai-msg-ai,
+body[data-mode="light"] .ai-bubble.assistant,
+body[data-mode="light"] .ai-msg-ai,
+:root[data-color-scheme="light"] .ai-bubble.assistant,
+:root[data-color-scheme="light"] .ai-msg-ai,
+html[data-color-scheme="light"] .ai-bubble.assistant,
+html[data-color-scheme="light"] .ai-msg-ai,
+body[data-color-scheme="light"] .ai-bubble.assistant,
+body[data-color-scheme="light"] .ai-msg-ai {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: rgba(0, 0, 0, 0.80) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Input (light) */
+:root.light .ai-followup-input,
+:root.light .ai-input,
+html.light .ai-followup-input,
+html.light .ai-input,
+body.light .ai-followup-input,
+body.light .ai-input,
+:root.theme-light .ai-followup-input,
+:root.theme-light .ai-input,
+html.theme-light .ai-followup-input,
+html.theme-light .ai-input,
+body.theme-light .ai-followup-input,
+body.theme-light .ai-input,
+:root[data-theme="light"] .ai-followup-input,
+:root[data-theme="light"] .ai-input,
+html[data-theme="light"] .ai-followup-input,
+html[data-theme="light"] .ai-input,
+body[data-theme="light"] .ai-followup-input,
+body[data-theme="light"] .ai-input,
+:root[data-mode="light"] .ai-followup-input,
+:root[data-mode="light"] .ai-input,
+html[data-mode="light"] .ai-followup-input,
+html[data-mode="light"] .ai-input,
+body[data-mode="light"] .ai-followup-input,
+body[data-mode="light"] .ai-input,
+:root[data-color-scheme="light"] .ai-followup-input,
+:root[data-color-scheme="light"] .ai-input,
+html[data-color-scheme="light"] .ai-followup-input,
+html[data-color-scheme="light"] .ai-input,
+body[data-color-scheme="light"] .ai-followup-input,
+body[data-color-scheme="light"] .ai-input {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: rgba(0, 0, 0, 0.85) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
+:root.light .ai-followup-input::placeholder,
+:root.light .ai-input::placeholder,
+html.light .ai-followup-input::placeholder,
+html.light .ai-input::placeholder,
+body.light .ai-followup-input::placeholder,
+body.light .ai-input::placeholder,
+:root.theme-light .ai-followup-input::placeholder,
+:root.theme-light .ai-input::placeholder,
+html.theme-light .ai-followup-input::placeholder,
+html.theme-light .ai-input::placeholder,
+body.theme-light .ai-followup-input::placeholder,
+body.theme-light .ai-input::placeholder,
+:root[data-theme="light"] .ai-followup-input::placeholder,
+:root[data-theme="light"] .ai-input::placeholder,
+html[data-theme="light"] .ai-followup-input::placeholder,
+html[data-theme="light"] .ai-input::placeholder,
+body[data-theme="light"] .ai-followup-input::placeholder,
+body[data-theme="light"] .ai-input::placeholder,
+:root[data-mode="light"] .ai-followup-input::placeholder,
+:root[data-mode="light"] .ai-input::placeholder,
+html[data-mode="light"] .ai-followup-input::placeholder,
+html[data-mode="light"] .ai-input::placeholder,
+body[data-mode="light"] .ai-followup-input::placeholder,
+body[data-mode="light"] .ai-input::placeholder,
+:root[data-color-scheme="light"] .ai-followup-input::placeholder,
+:root[data-color-scheme="light"] .ai-input::placeholder,
+html[data-color-scheme="light"] .ai-followup-input::placeholder,
+html[data-color-scheme="light"] .ai-input::placeholder,
+body[data-color-scheme="light"] .ai-followup-input::placeholder,
+body[data-color-scheme="light"] .ai-input::placeholder {
+  color: rgba(0, 0, 0, 0.45) !important;
+}
+
+/* ================================
+   FORCE DARK MODE – AI INSIGHT UI
+   (comparison toggle + follow-up)
+   Supports: .dark, data-theme="dark", data-mode="dark", data-color-scheme="dark"
+   ================================ */
+
+html.dark .ai-insight-modal,
+body.dark .ai-insight-modal,
+html[data-theme="dark"] .ai-insight-modal,
+body[data-theme="dark"] .ai-insight-modal,
+html[data-mode="dark"] .ai-insight-modal,
+body[data-mode="dark"] .ai-insight-modal,
+html[data-color-scheme="dark"] .ai-insight-modal,
+body[data-color-scheme="dark"] .ai-insight-modal {
+  background: rgba(15, 15, 15, 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Comparison toggle pills */
+html.dark .compare-toggle,
+body.dark .compare-toggle,
+html[data-theme="dark"] .compare-toggle,
+body[data-theme="dark"] .compare-toggle,
+html[data-mode="dark"] .compare-toggle,
+body[data-mode="dark"] .compare-toggle,
+html[data-color-scheme="dark"] .compare-toggle,
+body[data-color-scheme="dark"] .compare-toggle {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 4px;
+  gap: 6px;
+}
+
+html.dark .compare-toggle button,
+body.dark .compare-toggle button,
+html[data-theme="dark"] .compare-toggle button,
+body[data-theme="dark"] .compare-toggle button,
+html[data-mode="dark"] .compare-toggle button,
+body[data-mode="dark"] .compare-toggle button,
+html[data-color-scheme="dark"] .compare-toggle button,
+body[data-color-scheme="dark"] .compare-toggle button {
+  color: rgba(255, 255, 255, 0.75);
+  background: transparent;
+  border-radius: 9999px;
+}
+
+html.dark .compare-toggle button.active,
+body.dark .compare-toggle button.active,
+html[data-theme="dark"] .compare-toggle button.active,
+body[data-theme="dark"] .compare-toggle button.active,
+html[data-mode="dark"] .compare-toggle button.active,
+body[data-mode="dark"] .compare-toggle button.active,
+html[data-color-scheme="dark"] .compare-toggle button.active,
+body[data-color-scheme="dark"] .compare-toggle button.active {
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(0, 0, 0, 0.92);
+}
+
+/* Follow-up panel (glass) */
+html.dark .ai-followup-panel,
+body.dark .ai-followup-panel,
+html.dark .ai-followup,
+body.dark .ai-followup,
+html.dark .ai-followup-card,
+body.dark .ai-followup-card,
+html[data-theme="dark"] .ai-followup-panel,
+body[data-theme="dark"] .ai-followup-panel,
+html[data-theme="dark"] .ai-followup,
+body[data-theme="dark"] .ai-followup,
+html[data-theme="dark"] .ai-followup-card,
+body[data-theme="dark"] .ai-followup-card,
+html[data-mode="dark"] .ai-followup-panel,
+body[data-mode="dark"] .ai-followup-panel,
+html[data-mode="dark"] .ai-followup,
+body[data-mode="dark"] .ai-followup,
+html[data-mode="dark"] .ai-followup-card,
+body[data-mode="dark"] .ai-followup-card,
+html[data-color-scheme="dark"] .ai-followup-panel,
+body[data-color-scheme="dark"] .ai-followup-panel,
+html[data-color-scheme="dark"] .ai-followup,
+body[data-color-scheme="dark"] .ai-followup,
+html[data-color-scheme="dark"] .ai-followup-card,
+body[data-color-scheme="dark"] .ai-followup-card {
+  background: rgba(20, 20, 20, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 18px !important;
+}
+
+/* Input field (dark) */
+html.dark .ai-followup-input,
+body.dark .ai-followup-input,
+html.dark .ai-input,
+body.dark .ai-input,
+html[data-theme="dark"] .ai-followup-input,
+body[data-theme="dark"] .ai-followup-input,
+html[data-theme="dark"] .ai-input,
+body[data-theme="dark"] .ai-input,
+html[data-mode="dark"] .ai-followup-input,
+body[data-mode="dark"] .ai-followup-input,
+html[data-mode="dark"] .ai-input,
+body[data-mode="dark"] .ai-input,
+html[data-color-scheme="dark"] .ai-followup-input,
+body[data-color-scheme="dark"] .ai-followup-input,
+html[data-color-scheme="dark"] .ai-input,
+body[data-color-scheme="dark"] .ai-input {
+  background: rgba(0, 0, 0, 0.70) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+html.dark .ai-followup-input::placeholder,
+body.dark .ai-followup-input::placeholder,
+html.dark .ai-input::placeholder,
+body.dark .ai-input::placeholder,
+html[data-theme="dark"] .ai-followup-input::placeholder,
+body[data-theme="dark"] .ai-followup-input::placeholder,
+html[data-theme="dark"] .ai-input::placeholder,
+body[data-theme="dark"] .ai-input::placeholder,
+html[data-mode="dark"] .ai-followup-input::placeholder,
+body[data-mode="dark"] .ai-followup-input::placeholder,
+html[data-mode="dark"] .ai-input::placeholder,
+body[data-mode="dark"] .ai-input::placeholder,
+html[data-color-scheme="dark"] .ai-followup-input::placeholder,
+body[data-color-scheme="dark"] .ai-followup-input::placeholder,
+html[data-color-scheme="dark"] .ai-input::placeholder,
+body[data-color-scheme="dark"] .ai-input::placeholder {
+  color: rgba(255, 255, 255, 0.40) !important;
+}
+
+/* Quick chips (dark) */
+html.dark .ai-chip,
+body.dark .ai-chip,
+html[data-theme="dark"] .ai-chip,
+body[data-theme="dark"] .ai-chip,
+html[data-mode="dark"] .ai-chip,
+body[data-mode="dark"] .ai-chip,
+html[data-color-scheme="dark"] .ai-chip,
+body[data-color-scheme="dark"] .ai-chip {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Chat bubbles (dark) */
+html.dark .ai-msg-user,
+body.dark .ai-msg-user,
+html[data-theme="dark"] .ai-msg-user,
+body[data-theme="dark"] .ai-msg-user,
+html[data-mode="dark"] .ai-msg-user,
+body[data-mode="dark"] .ai-msg-user,
+html[data-color-scheme="dark"] .ai-msg-user,
+body[data-color-scheme="dark"] .ai-msg-user {
+  background: linear-gradient(135deg, #0d0d0d, #1a1a1a) !important;
+  color: #fff !important;
+}
+
+html.dark .ai-msg-ai,
+body.dark .ai-msg-ai,
+html[data-theme="dark"] .ai-msg-ai,
+body[data-theme="dark"] .ai-msg-ai,
+html[data-mode="dark"] .ai-msg-ai,
+body[data-mode="dark"] .ai-msg-ai,
+html[data-color-scheme="dark"] .ai-msg-ai,
+body[data-color-scheme="dark"] .ai-msg-ai {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(255, 255, 255, 0.90) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+
+/* ================================
+   Typography System
+   Body: Montserrat
+   Headings: Glacial Indifference
+   ================================ */
+
+:root {
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: var(--font-body);
+}
+
+/* Base body text */
+body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings & titles */
+h1, h2, h3, h4, h5, h6,
+.heading,
+.app-title,
+.card-title,
+.modal-title,
+.section-title {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+/* Numeric emphasis (amounts, balances) */
+.amount,
+.money,
+.balance,
+.stat-value {
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Buttons & inputs */
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-body);
 }
