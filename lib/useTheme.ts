@@ -1,38 +1,39 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ThemeMode, applyTheme, getStoredTheme, getSystemTheme, storeTheme } from "./theme";
+import {
+  ThemeMode,
+  applyTheme,
+  getStoredTheme,
+  getSystemTheme,
+  storeTheme,
+} from "./theme";
 
 export function useTheme() {
   const [theme, setTheme] = useState<ThemeMode>("system");
 
-  // initial load
+  // Apply theme on mount
   useEffect(() => {
-    const t = getStoredTheme();
-    setTheme(t);
-    applyTheme(t);
+    const stored = getStoredTheme();
+    const resolved: ThemeMode = stored ?? "system";
+
+    setTheme(resolved);
+    applyTheme(resolved);
   }, []);
 
-  // apply on change
-  useEffect(() => {
-    applyTheme(theme);
-    storeTheme(theme);
-  }, [theme]);
-
-  // if theme is system, react to OS change live
-  useEffect(() => {
-    if (theme !== "system") return;
-
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => applyTheme("system");
-
-    mq.addEventListener?.("change", handler);
-    return () => mq.removeEventListener?.("change", handler);
-  }, [theme]);
-
-  const effective = useMemo(() => {
+  const effectiveTheme = useMemo(() => {
     return theme === "system" ? getSystemTheme() : theme;
   }, [theme]);
 
-  return { theme, effective, setTheme };
+  const setAndApplyTheme = (mode: ThemeMode) => {
+    setTheme(mode);
+    storeTheme(mode);
+    applyTheme(mode);
+  };
+
+  return {
+    theme,
+    effectiveTheme,
+    setTheme: setAndApplyTheme,
+  };
 }

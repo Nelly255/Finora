@@ -108,14 +108,14 @@ export default function DepreciationNewPage() {
           className="auth-card card card-pad"
           style={{ width: "100%", position: "relative", zIndex: 1 }}
         >
-          <div className="row-between" style={{ gap: 12, marginBottom: 10 }}>
+          <div className="row-between dep-header" style={{ gap: 12, marginBottom: 10 }}>
             <button className="btn btn-ghost" type="button" onClick={() => router.back()}>
               ← Back
             </button>
 
             <div style={{ fontWeight: 900, letterSpacing: "-0.02em" }}>Record Asset</div>
 
-            <div className="row" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div className="row dep-header-actions" style={{ display: "flex", gap: 10, alignItems: "center" }}>
 
               <button className="btn btn-ghost" type="button" onClick={() => router.push("/depreciation")}>
                 Asset Register
@@ -169,7 +169,7 @@ export default function DepreciationNewPage() {
                 </select>
               </label>
 
-              <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
+              <div className="dep-two-col">
                 <label>
                   <div className="stat-label">PURCHASE DATE</div>
                   <input
@@ -215,7 +215,7 @@ export default function DepreciationNewPage() {
                 </div>
               </label>
 
-              <div className="row-between" style={{ gap: 12, marginTop: 6 }}>
+              <div className="row-between dep-footer-actions" style={{ gap: 12, marginTop: 6 }}>
                 <button className="btn btn-ghost" type="button" onClick={() => router.back()}>
                   Cancel
                 </button>
@@ -276,6 +276,52 @@ export default function DepreciationNewPage() {
         @media (min-width: 960px) {
           .dep-layout {
             grid-template-columns: 1.6fr 1fr;
+          }
+        }
+
+        /* --- Mobile-first tweaks --- */
+
+        /* Make header wrap nicely on small screens */
+        .dep-header {
+          flex-wrap: wrap;
+        }
+        .dep-header-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+        @media (min-width: 640px) {
+          .dep-header-actions {
+            width: auto;
+          }
+        }
+
+        /* Date + Cost grid: 1 col on mobile, 2 cols on sm+ */
+        .dep-two-col {
+          display: grid;
+          gap: 12px;
+          grid-template-columns: 1fr;
+        }
+        @media (min-width: 640px) {
+          .dep-two-col {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+
+        /* Footer buttons: stack on mobile, row on sm+ */
+        .dep-footer-actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .dep-footer-actions :global(button) {
+          width: 100%;
+        }
+        @media (min-width: 640px) {
+          .dep-footer-actions {
+            flex-direction: row;
+            align-items: center;
+          }
+          .dep-footer-actions :global(button) {
+            width: auto;
           }
         }
       `}</style>

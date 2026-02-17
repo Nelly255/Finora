@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
+// Ensure this route runs on the Node.js runtime (not Edge),
+// since most AI SDKs expect Node APIs.
+export const runtime = "nodejs";
+
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
 function safeJson(v: unknown): string {
@@ -122,7 +126,10 @@ ${question}
     }
 
     const textOut =
-      result?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") ||
+      (result?.candidates?.[0]?.content?.parts ?? [])
+        .map((p: any) => (typeof p?.text === "string" ? p.text : ""))
+        .join("")
+        .trim() ||
       "No response";
 
     return NextResponse.json({

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { computeSmartAlerts, type Tx } from "@/lib/smart-alerts";
 import Link from "next/link";
 import { calculateFinancialHealth } from "@/lib/financial-health";
 
@@ -120,10 +121,12 @@ function FollowUpChat({
   context,
   disabled,
   storageKey = "ai_followup_thread_v1",
+  onLastUpdated,
 }: {
   context: any;
   disabled?: boolean;
   storageKey?: string;
+  onLastUpdated?: (d: Date) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -198,11 +201,9 @@ function FollowUpChat({
         { role: "assistant", content: `Sorry mate — I hit an error: ${e?.message || "unknown"}` },
       ]);
     } finally {
-
-    setLastUpdated(new Date());
-    setLoading(false);
-  }
-
+      onLastUpdated?.(new Date());
+      setLoading(false);
+    }
   };
 
   const clearChat = () => {
@@ -1083,9 +1084,30 @@ try {
   }
 
   async function deleteSubscription(id: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("subscriptions").delete().eq("id", id).eq("user_id", user.id);
-    if(user) await loadAll(user);
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error("getUser error:", error.message);
+      return;
+    }
+
+    const user = data?.user;
+    if (!user) {
+      console.warn("No user session. Skipping delete.");
+      return;
+    }
+
+    const { error: delErr } = await supabase
+      .from("subscriptions")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (delErr) {
+      console.error("delete subscription error:", delErr.message);
+      return;
+    }
+
+    await loadAll(user);
   }
 
   async function addCategory() {
@@ -1146,10 +1168,32 @@ try {
   }
 
   async function deleteSavingsGoal(id: string) {
-    if(!confirm("Delete this savings goal?")) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("savings_goals").delete().eq("id", id).eq("user_id", user.id);
-    if(user) await loadAll(user);
+    if (!confirm("Delete this savings goal?")) return;
+
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error("getUser error:", error.message);
+      return;
+    }
+
+    const user = data?.user;
+    if (!user) {
+      console.warn("No user session. Skipping delete.");
+      return;
+    }
+
+    const { error: delErr } = await supabase
+      .from("savings_goals")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (delErr) {
+      console.error("delete savings goal error:", delErr.message);
+      return;
+    }
+
+    await loadAll(user);
   }
 
   async function contributeToGoal(id: string, current: number) {
@@ -1538,7 +1582,6 @@ const financialHealth = useMemo(() => {
               title="AI Insight (Ctrl/Cmd + K)"
               style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
               onClick={() => runAiSummary(true)}
-              title="AI"
               type="button"
             >
               ✨
@@ -1834,7 +1877,8 @@ const financialHealth = useMemo(() => {
                                         backdropFilter: "blur(12px)"
                                     }}
                                     itemStyle={{ color: "#fff" }}
-                                    formatter={(value: number) => formatMoney(value, currency)}
+                                    formatter={(value: any) => formatMoney(Number(value ?? 0), currency)}
+
                                 />
                                 <Legend verticalAlign="bottom" height={36} iconType="circle" />
                             </PieChart>
@@ -2124,7 +2168,7 @@ const financialHealth = useMemo(() => {
         </div>
       </div>
 
-      <div className="floating-bar">
+      <div className="floating-bar desktop-bar">
         <div className="user-chip" role="button" onClick={() => setSettingsOpen(true)}>
           {avatarUrl ? (
              <img src={avatarUrl} alt="Me" className="avatar" style={{ objectFit: 'cover' }} />
@@ -2153,6 +2197,42 @@ const financialHealth = useMemo(() => {
             ⚙
           </button>
         </div>
+
+      <div className="mobile-bar">
+        <button
+          type="button"
+          className="mobile-user"
+          onClick={() => setSettingsOpen(true)}
+          aria-label="Open profile and settings"
+        >
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Me" className="avatar" style={{ objectFit: "cover" }} />
+          ) : (
+            <div className="avatar">{initials}</div>
+          )}
+          <div className="mobile-username">{username}</div>
+        </button>
+
+        <div className="seg mobile-seg" aria-label="Currency">
+          <button className={currency === "TZS" ? "active" : ""} onClick={() => setCurrency("TZS")}>
+            TZS
+          </button>
+          <button className={currency === "USD" ? "active" : ""} onClick={() => setCurrency("USD")}>
+            USD
+          </button>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-ghost mobile-gear"
+          onClick={() => setSettingsOpen(true)}
+          title="Settings"
+          aria-label="Settings"
+        >
+          ⚙
+        </button>
+      </div>
+
       </div>
 
       {settingsOpen ? (
@@ -2380,6 +2460,7 @@ const financialHealth = useMemo(() => {
               context={aiContext}
               disabled={aiLoading}
               storageKey={`ai_followup_${aiContext?.month || "current"}`}
+                          onLastUpdated={(d) => setLastUpdated(d)}
             />
 
             <div className="ai-modal-actions">
@@ -2420,10 +2501,55 @@ const financialHealth = useMemo(() => {
           --floating-bar-space: 120px;
         }
 
+        .mobile-bar { display: none; }
+
         @media (max-width: 640px) {
           :root {
-            --floating-bar-space: 200px;
+            --floating-bar-space: 120px;
           }
+
+          .desktop-bar { display: none !important; }
+          .mobile-bar {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            bottom: calc(12px + env(safe-area-inset-bottom));
+            z-index: 80;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 22px;
+            background: rgba(0,0,0,0.55);
+            border: 1px solid rgba(255,255,255,0.12);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+          }
+
+          .mobile-bar .mobile-user {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            flex: 1 1 auto;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.10);
+          }
+
+          .mobile-bar .mobile-username {
+            font-weight: 900;
+            font-size: 13px;
+            color: rgba(255,255,255,0.92);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .mobile-bar .mobile-seg { flex: 0 0 auto; }
+          .mobile-bar .mobile-gear { padding: 10px 12px; border-radius: 14px; }
+
 
           .floating-bar {
             left: 12px !important;

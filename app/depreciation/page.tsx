@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -141,6 +141,20 @@ function HistoryChart({ data }: { data: YearPoint[] }) {
 }
 
 export default function DepreciationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="card" style={{ padding: 16, borderRadius: 18 }}>
+          Loading…
+        </div>
+      }
+    >
+      <DepreciationPageInner />
+    </Suspense>
+  );
+}
+
+function DepreciationPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
