@@ -2,12 +2,54 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
 /**
+ * Parse money-ish inputs like:
+ * - "TZS 1,000,000.00"
+ * - "1 000 000"
+ * - "(1,234.50)"
+ * - "-1234.5"
+ * Returns NaN if it can't parse.
+ */
+function parseMoney(v: unknown): number {
+  if (typeof v === "number") return v;
+
+  if (typeof v === "string") {
+    let s = v.trim();
+
+    // Handle (123.45) as negative
+    const isParenNeg = /^\(.*\)$/.test(s);
+    if (isParenNeg) s = s.slice(1, -1);
+
+    // Remove currency letters/symbols and keep digits, dot, comma, minus, space
+    // e.g. "TZS 1,000,000.00" -> " 1,000,000.00"
+    s = s.replace(/[^\d.,\-\s]/g, "");
+
+    // Remove spaces
+    s = s.replace(/\s+/g, "");
+
+    // If both comma and dot exist, assume comma is thousands separator
+    // "1,234.56" -> "1234.56"
+    if (s.includes(",") && s.includes(".")) {
+      s = s.replace(/,/g, "");
+    } else if (s.includes(",") && !s.includes(".")) {
+      // "1234,56" -> "1234.56" (EU style)
+      s = s.replace(/,/g, ".");
+    }
+
+    const n = Number.parseFloat(s);
+    if (!Number.isFinite(n)) return Number.NaN;
+    return isParenNeg ? -n : n;
+  }
+
+  return Number.NaN;
+}
+
+/**
  * Lenient numeric coercion:
  * - accepts numbers
  * - accepts strings like "TZS 1,000,000.00"
+ * - accepts objects like { value }, { amount }, { total }, { text }
  */
 function toNumber(v: unknown): number | null {
-  // Accept: number, numeric strings (with commas/currency), or common object shapes ({ value }, { amount }, { total })
   if (typeof v === "number" && Number.isFinite(v)) return v;
 
   if (typeof v === "object" && v !== null) {
@@ -19,6 +61,7 @@ function toNumber(v: unknown): number | null {
       anyV.sum ??
       anyV.number ??
       (typeof anyV.text === "string" ? anyV.text : undefined);
+
     if (candidate !== undefined) return toNumber(candidate);
   }
 
@@ -34,7 +77,6 @@ function pickFirst<T>(...vals: T[]): T | undefined {
 }
 
 function monthFallback(): string {
-  // Server-side fallback label like "February 2026"
   const d = new Date();
   const month = d.toLocaleString("en-GB", { month: "long" });
   const year = d.getFullYear();
@@ -45,14 +87,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
 
-    // Accept multiple possible field names from the frontend
     const month =
-      typeof pickFirst(
-        body?.month,
-        body?.monthLabel,
-        body?.period,
-        body?.label
-      ) === "string"
+      typeof pickFirst(body?.month, body?.monthLabel, body?.period, body?.label) === "string"
         ? (pickFirst(body?.month, body?.monthLabel, body?.period, body?.label) as string)
         : monthFallback();
 
@@ -81,7 +117,6 @@ export async function POST(req: Request) {
         )
       ) ?? null;
 
-    // balance can be explicitly provided, or derived from income - expenses
     let balanceNum =
       toNumber(
         pickFirst(
@@ -98,28 +133,22 @@ export async function POST(req: Request) {
       balanceNum = incomeNum - expensesNum;
     }
 
-    // If something is missing, return a helpful 400 with what we received.
-  if (!month || incomeNum === null || expensesNum === null || balanceNum === null) {
-    const missing: string[] = [];
-    if (!month) missing.push("month/monthLabel/period/label");
-    if (incomeNum === null) missing.push("income/incomeNum/totalIncome/incomeText");
-    if (expensesNum === null) missing.push("expenses/expensesNum/totalExpenses/expenseText");
-    if (balanceNum === null) missing.push("balance/bal/net/balanceText");
+    if (!month || incomeNum === null || expensesNum === null || balanceNum === null) {
+      const missing: string[] = [];
+      if (!month) missing.push("month/monthLabel/period/label");
+      if (incomeNum === null) missing.push("income/incomeNum/totalIncome/incomeText");
+      if (expensesNum === null) missing.push("expenses/expensesNum/totalExpenses/expenseText");
+      if (balanceNum === null) missing.push("balance/bal/net/balanceText");
 
-    console.warn("[/api/ai/summary] Bad request - missing/invalid fields:", { missing, body });
+      console.warn("[/api/ai/summary] Bad request - missing/invalid fields:", { missing, body });
 
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "BAD_REQUEST",
-        missing,
-        received: body ?? null,
-      },
-      { status: 400 }
-    );
-  }
+      return NextResponse.json(
+        { ok: false, error: "BAD_REQUEST", missing, received: body ?? null },
+        { status: 400 }
+      );
+    }
 
-const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ ok: false, error: "Missing GEMINI_API_KEY" }, { status: 500 });
     }
@@ -137,99 +166,26 @@ Income (TZS): ${incomeNum}
 Expenses (TZS): ${expensesNum}
 Balance (TZS): ${balanceNum}
 
-Return:
-1) A 2–3 sentence summary
-2) 2–4 bullet insights (use the numbers)
-3) 1 practical next step
-`.trim();
+Give:
+1) 1-sentence sentiment check
+2) 3 actionable tips
+3) 1 quick smart alert if something is unusually high
+`;
 
-    let result: any;
-    try {
-      result = await ai.models.generateContent({
-        model,
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-      });
-    } catch (e: any) {
-      const status = e?.status ?? e?.response?.status ?? e?.cause?.status;
-      const msg = String(e?.message ?? e ?? "");
-      const isQuota =
-        status === 429 ||
-        /429/.test(msg) ||
-        /RESOURCE_EXHAUSTED/i.test(msg) ||
-        /quota/i.test(msg) ||
-        /rate/i.test(msg);
-
-      if (isQuota) {
-        return NextResponse.json(
-          {
-            ok: false,
-            code: "QUOTA_EXCEEDED",
-            error:
-              "AI limit reached right now. Try again in a minute (or increase your Gemini quota).",
-          },
-          { status: 429 }
-        );
-      }
-
-      return NextResponse.json(
-        {
-          ok: false,
-          code: "AI_PROVIDER_ERROR",
-          error: "AI service error. Please try again.",
-          debug: process.env.NODE_ENV === "development" ? msg.slice(0, 400) : undefined,
-        },
-        { status: typeof status === "number" ? status : 502 }
-      );
-    }
-
-    const textOut =
-      result?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") ||
-      "No response";
-
-    return NextResponse.json({
-      ok: true,
-      text: textOut,
-      debug:
-        process.env.NODE_ENV === "development"
-          ? { month, income: incomeNum, expenses: expensesNum, balance: balanceNum }
-          : undefined,
-    });
-} catch (err: any) {
-    const message = err?.message ?? String(err);
-    const status =
-      err?.status ??
-      err?.response?.status ??
-      err?.cause?.status ??
-      err?.cause?.response?.status;
-
-    // Some Google SDK errors carry useful payloads on `response` or `errorDetails`
-    const details =
-      err?.response?.data ??
-      err?.response?.body ??
-      err?.errorDetails ??
-      err?.cause?.response?.data ??
-      err?.cause?.response?.body;
-
-    console.error("[/api/ai/summary] AI request failed:", {
-      message,
-      status,
-      details,
+    const result = await ai.models.generateContent({
+      model,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
     });
 
+    const text =
+      result?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("") ??
+      "";
+
+    return NextResponse.json({ ok: true, text }, { status: 200 });
+  } catch (err: any) {
+    console.error("[/api/ai/summary] Error:", err?.message ?? err);
     return NextResponse.json(
-      {
-        ok: false,
-        code: "AI_ERROR",
-        error: message,
-        status,
-        // keep details in prod too (trimmed) so you can diagnose in Vercel logs/UI
-        details:
-          details
-            ? typeof details === "string"
-              ? details.slice(0, 2000)
-              : details
-            : undefined,
-      },
+      { ok: false, error: "AI_ERROR", message: err?.message ?? "Unknown error" },
       { status: 500 }
     );
   }
