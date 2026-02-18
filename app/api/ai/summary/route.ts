@@ -1,8 +1,32 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { Redis } from "@upstash/redis";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const redis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? Redis.fromEnv()
+    : null;
+
+const DAILY_AI_LIMIT = 5;
+
+function getClientId(req: Request, bodyUserId?: string) {
+  if (bodyUserId && bodyUserId.trim()) return `uid:${bodyUserId.trim()}`;
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+  return `ip:${ip}`;
+}
+
+function secondsUntilUtcMidnight() {
+  const now = new Date();
+  const next = new Date(now);
+  next.setUTCHours(24, 0, 0, 0);
+  return Math.max(1, Math.floor((next.getTime() - now.getTime()) / 1000));
+}
 
 /**
  * Parse money-ish inputs like:
@@ -162,6 +186,47 @@ export async function POST(req: Request) {
       );
     }
 
+// Server-side daily limit (requires Upstash Redis env vars).
+// Limits by authenticated userId when provided, otherwise falls back to IP.
+if (redis) {
+  const bodyUserId = typeof body?.userId === "string" ? body.userId : undefined;
+  const clientId = getClientId(req, bodyUserId);
+  const day = new Date().toISOString().slice(0, 10); // UTC YYYY-MM-DD
+  const key = `ai:summary:${clientId}:${day}`;
+  const ttl = secondsUntilUtcMidnight();
+
+  const count = await redis.incr(key);
+  if (count === 1) await redis.expire(key, ttl);
+
+  const remaining = Math.max(0, DAILY_AI_LIMIT - count);
+
+  if (count > DAILY_AI_LIMIT) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "DAILY_LIMIT_REACHED",
+        code: "DAILY_LIMIT_REACHED",
+        message: `You’ve hit your ${DAILY_AI_LIMIT} AI insights for today. Come back tomorrow 🙂`,
+        limit: DAILY_AI_LIMIT,
+        remaining: 0,
+        resetInSeconds: ttl,
+        resetAtUtc: new Date(Date.now() + ttl * 1000).toISOString(),
+        requestId,
+      },
+      {
+        status: 429,
+        headers: {
+          "Cache-Control": "no-store",
+          "Retry-After": String(ttl),
+        },
+      }
+    );
+  }
+
+  // Attach remaining to the request object via (body as any) for later success response.
+  (body as any).__aiRemaining = remaining;
+}
+
     const ai = new GoogleGenAI({ apiKey });
     const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
@@ -191,7 +256,12 @@ Give:
       result?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("").trim() ||
       "";
 
-    return NextResponse.json({ ok: true, text, model, requestId }, { status: 200 });
+    const remaining = typeof (body as any).__aiRemaining === "number" ? (body as any).__aiRemaining : undefined;
+
+    return NextResponse.json(
+      { ok: true, summary: text, text, model, requestId, limit: DAILY_AI_LIMIT, remaining },
+      { status: 200 }
+    );
   } catch (err: any) {
     const status = typeof err?.status === "number" ? err.status : 500;
     const details = err?.error ?? null;
