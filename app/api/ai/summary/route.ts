@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 /**
  * Parse money-ish inputs like:
  * - "TZS 1,000,000.00"
@@ -84,6 +87,7 @@ function monthFallback(): string {
 }
 
 export async function POST(req: Request) {
+  const requestId = crypto.randomUUID();
   try {
     const body = await req.json().catch(() => ({}));
 
@@ -143,14 +147,26 @@ export async function POST(req: Request) {
       console.warn("[/api/ai/summary] Bad request - missing/invalid fields:", { missing, body });
 
       return NextResponse.json(
-        { ok: false, error: "BAD_REQUEST", missing, received: body ?? null },
+        { ok: false, error: "BAD_REQUEST", missing, received: body ?? null, requestId },
         { status: 400 }
       );
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const rawKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "";
+    const apiKey = rawKey.trim();
     if (!apiKey) {
-      return NextResponse.json({ ok: false, error: "Missing GEMINI_API_KEY" }, { status: 500 });
+      return NextResponse.json(
+        { ok: false, error: "MISSING_API_KEY", message: "Set GEMINI_API_KEY (server env) in Vercel." },
+        { status: 500 }
+      );
+    }
+
+    // Safe diagnostics (does not log the key itself)
+    if (rawKey && rawKey !== apiKey) {
+      console.warn("[ai.summary] GEMINI_API_KEY had surrounding whitespace; trimmed.", { requestId, rawLen: rawKey.length, trimmedLen: apiKey.length });
+    }
+    if (rawKey.startsWith('"') || rawKey.startsWith("\'") || rawKey.endsWith('"') || rawKey.endsWith("\'")) {
+      console.warn("[ai.summary] GEMINI_API_KEY looks quoted in env; remove quotes in Vercel.", { requestId });
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -178,15 +194,29 @@ Give:
     });
 
     const text =
-      result?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("") ??
+      ((result as any)?.text as string | undefined)?.trim() ||
+      result?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("").trim() ||
       "";
 
-    return NextResponse.json({ ok: true, text }, { status: 200 });
+    return NextResponse.json({ ok: true, text, model, requestId }, { status: 200 });
   } catch (err: any) {
-    console.error("[/api/ai/summary] Error:", err?.message ?? err);
+    const status = typeof err?.status === "number" ? err.status : 500;
+    const details = err?.error ?? null;
+    console.error("[/api/ai/summary] Error:", {
+      requestId,
+      message: err?.message ?? String(err),
+      status: err?.status,
+      error: details,
+    });
     return NextResponse.json(
-      { ok: false, error: "AI_ERROR", message: err?.message ?? "Unknown error" },
-      { status: 500 }
+      {
+        ok: false,
+        error: "AI_ERROR",
+        message: err?.message ?? "Unknown error",
+        requestId,
+        details,
+      },
+      { status }
     );
   }
 }
