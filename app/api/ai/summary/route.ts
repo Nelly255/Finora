@@ -23,14 +23,12 @@ function parseMoney(v: unknown): number {
     if (isParenNeg) s = s.slice(1, -1);
 
     // Remove currency letters/symbols and keep digits, dot, comma, minus, space
-    // e.g. "TZS 1,000,000.00" -> " 1,000,000.00"
     s = s.replace(/[^\d.,\-\s]/g, "");
 
     // Remove spaces
     s = s.replace(/\s+/g, "");
 
     // If both comma and dot exist, assume comma is thousands separator
-    // "1,234.56" -> "1234.56"
     if (s.includes(",") && s.includes(".")) {
       s = s.replace(/,/g, "");
     } else if (s.includes(",") && !s.includes(".")) {
@@ -86,15 +84,24 @@ function monthFallback(): string {
   return `${month} ${year}`;
 }
 
+function json(data: unknown, init?: ResponseInit) {
+  return NextResponse.json(data, {
+    ...init,
+    headers: {
+      "Cache-Control": "no-store",
+      ...(init?.headers ?? {}),
+    },
+  });
+}
+
 export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
+
   try {
     const body = await req.json().catch(() => ({}));
 
-    const month =
-      typeof pickFirst(body?.month, body?.monthLabel, body?.period, body?.label) === "string"
-        ? (pickFirst(body?.month, body?.monthLabel, body?.period, body?.label) as string)
-        : monthFallback();
+    const monthRaw = pickFirst(body?.month, body?.monthLabel, body?.period, body?.label);
+    const month = typeof monthRaw === "string" && monthRaw.trim() ? monthRaw.trim() : monthFallback();
 
     const incomeNum =
       toNumber(
@@ -137,17 +144,20 @@ export async function POST(req: Request) {
       balanceNum = incomeNum - expensesNum;
     }
 
-    if (!month || incomeNum === null || expensesNum === null || balanceNum === null) {
+    if (incomeNum === null || expensesNum === null || balanceNum === null) {
       const missing: string[] = [];
-      if (!month) missing.push("month/monthLabel/period/label");
-      if (incomeNum === null) missing.push("income/incomeNum/totalIncome/incomeText");
-      if (expensesNum === null) missing.push("expenses/expensesNum/totalExpenses/expenseText");
-      if (balanceNum === null) missing.push("balance/bal/net/balanceText");
+      if (incomeNum === null) missing.push("income");
+      if (expensesNum === null) missing.push("expenses");
+      if (balanceNum === null) missing.push("balance");
 
-      console.warn("[/api/ai/summary] Bad request - missing/invalid fields:", { missing, body });
-
-      return NextResponse.json(
-        { ok: false, error: "BAD_REQUEST", missing, received: body ?? null, requestId },
+      return json(
+        {
+          ok: false,
+          error: "BAD_REQUEST",
+          message: "Missing or invalid numeric fields.",
+          missing,
+          requestId,
+        },
         { status: 400 }
       );
     }
@@ -155,34 +165,23 @@ export async function POST(req: Request) {
     const rawKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "";
     const apiKey = rawKey.trim();
 
-    // TEMP DEBUG: helps confirm Vercel is injecting the expected key (does NOT log the full key)
-    console.log("[ai] key_check", {
-      present: !!apiKey,
-      rawLen: rawKey.length,
-      trimmedLen: apiKey.length,
-      startsWithQuote: rawKey.startsWith('"') || rawKey.startsWith("'"),
-      endsWithQuote: rawKey.endsWith('"') || rawKey.endsWith("'"),
-      end4: apiKey.slice(-4),
-      hadWhitespace: rawKey.length !== apiKey.length,
-    });
-
     if (!apiKey) {
-      return NextResponse.json(
-        { ok: false, error: "MISSING_API_KEY", message: "Set GEMINI_API_KEY (server env) in Vercel." },
+      return json(
+        {
+          ok: false,
+          error: "MISSING_API_KEY",
+          message: "Set GEMINI_API_KEY (server env) in Vercel.",
+          requestId,
+        },
         { status: 500 }
       );
     }
 
-    // Safe diagnostics (does not log the key itself)
-    if (rawKey && rawKey !== apiKey) {
-      console.warn("[ai.summary] GEMINI_API_KEY had surrounding whitespace; trimmed.", { requestId, rawLen: rawKey.length, trimmedLen: apiKey.length });
-    }
-    if (rawKey.startsWith('"') || rawKey.startsWith("\'") || rawKey.endsWith('"') || rawKey.endsWith("\'")) {
-      console.warn("[ai.summary] GEMINI_API_KEY looks quoted in env; remove quotes in Vercel.", { requestId });
-    }
-
     const ai = new GoogleGenAI({ apiKey });
-    const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+
+    // Allow override via env, otherwise use a known-good default.
+    // Tip: if you ever need to be extra explicit, you can set this env to "models/gemini-2.5-flash".
+    const model = (process.env.GEMINI_MODEL ?? "gemini-2.5-flash").trim();
 
     const prompt = `
 You are a helpful assistant for a personal finance app.
@@ -198,29 +197,52 @@ Give:
 1) 1-sentence sentiment check
 2) 3 actionable tips
 3) 1 quick smart alert if something is unusually high
-`;
+`.trim();
 
     const result = await ai.models.generateContent({
       model,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        temperature: 0.2,
+        maxOutputTokens: 400,
+      },
     });
 
     const text =
       ((result as any)?.text as string | undefined)?.trim() ||
-      result?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("").trim() ||
+      result?.candidates?.[0]?.content?.parts
+        ?.map((p: any) => p?.text)
+        .filter(Boolean)
+        .join("")
+        .trim() ||
       "";
 
-    return NextResponse.json({ ok: true, text, model, requestId }, { status: 200 });
+    if (!text) {
+      return json(
+        {
+          ok: false,
+          error: "EMPTY_MODEL_RESPONSE",
+          message: "Gemini returned an empty response.",
+          model,
+          requestId,
+        },
+        { status: 502 }
+      );
+    }
+
+    return json({ ok: true, text, model, requestId }, { status: 200 });
   } catch (err: any) {
     const status = typeof err?.status === "number" ? err.status : 500;
     const details = err?.error ?? null;
+
     console.error("[/api/ai/summary] Error:", {
       requestId,
       message: err?.message ?? String(err),
       status: err?.status,
       error: details,
     });
-    return NextResponse.json(
+
+    return json(
       {
         ok: false,
         error: "AI_ERROR",
