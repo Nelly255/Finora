@@ -7,17 +7,23 @@ import { GoogleGenAI } from "@google/genai";
  * - accepts strings like "TZS 1,000,000.00"
  */
 function toNumber(v: unknown): number | null {
-  if (v === null || v === undefined) return null;
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  // Accept: number, numeric strings (with commas/currency), or common object shapes ({ value }, { amount }, { total })
+  if (typeof v === "number" && Number.isFinite(v)) return v;
 
-  if (typeof v === "string") {
-    const cleaned = v.replace(/[^0-9.-]/g, "").trim();
-    if (!cleaned) return null;
-    const n = Number(cleaned);
-    return Number.isFinite(n) ? n : null;
+  if (typeof v === "object" && v !== null) {
+    const anyV = v as Record<string, unknown>;
+    const candidate =
+      anyV.value ??
+      anyV.amount ??
+      anyV.total ??
+      anyV.sum ??
+      anyV.number ??
+      (typeof anyV.text === "string" ? anyV.text : undefined);
+    if (candidate !== undefined) return toNumber(candidate);
   }
 
-  return null;
+  const n = parseMoney(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 function pickFirst<T>(...vals: T[]): T | undefined {
@@ -92,31 +98,34 @@ export async function POST(req: Request) {
       balanceNum = incomeNum - expensesNum;
     }
 
-    // If still missing, return a helpful 400 with what we received.
-    if (incomeNum === null || expensesNum === null || balanceNum === null) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Missing or invalid fields",
-          hint: "Send JSON with { month, income, expenses, balance } (numbers), or allow balance to be derived.",
-          received: {
-            month: body?.month ?? body?.monthLabel ?? body?.period ?? body?.label,
-            income: body?.income ?? body?.incomeNum ?? body?.totalIncome ?? body?.incomeText,
-            expenses: body?.expenses ?? body?.expensesNum ?? body?.totalExpenses ?? body?.expenseText,
-            balance: body?.balance ?? body?.bal ?? body?.net ?? body?.balanceText,
-          },
-          parsed: { month, income: incomeNum, expenses: expensesNum, balance: balanceNum },
-        },
-        { status: 400 }
-      );
-    }
+    // If something is missing, return a helpful 400 with what we received.
+  if (!month || incomeNum === null || expensesNum === null || balanceNum === null) {
+    const missing: string[] = [];
+    if (!month) missing.push("month/monthLabel/period/label");
+    if (incomeNum === null) missing.push("income/incomeNum/totalIncome/incomeText");
+    if (expensesNum === null) missing.push("expenses/expensesNum/totalExpenses/expenseText");
+    if (balanceNum === null) missing.push("balance/bal/net/balanceText");
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    console.warn("[/api/ai/summary] Bad request - missing/invalid fields:", { missing, body });
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "BAD_REQUEST",
+        missing,
+        received: body ?? null,
+      },
+      { status: 400 }
+    );
+  }
+
+const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ ok: false, error: "Missing GEMINI_API_KEY" }, { status: 500 });
     }
 
     const ai = new GoogleGenAI({ apiKey });
+    const model = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 
     const prompt = `
 You are a helpful assistant for a personal finance app.
@@ -137,7 +146,7 @@ Return:
     let result: any;
     try {
       result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model,
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
     } catch (e: any) {
@@ -186,5 +195,42 @@ Return:
           : undefined,
     });
 } catch (err: any) {
-    return NextResponse.json({ ok: false, code: "SERVER_ERROR", error: "Server error. Please try again.", debug: process.env.NODE_ENV === "development" ? String(err?.message ?? err).slice(0, 400) : undefined }, { status: 500 });}
+    const message = err?.message ?? String(err);
+    const status =
+      err?.status ??
+      err?.response?.status ??
+      err?.cause?.status ??
+      err?.cause?.response?.status;
+
+    // Some Google SDK errors carry useful payloads on `response` or `errorDetails`
+    const details =
+      err?.response?.data ??
+      err?.response?.body ??
+      err?.errorDetails ??
+      err?.cause?.response?.data ??
+      err?.cause?.response?.body;
+
+    console.error("[/api/ai/summary] AI request failed:", {
+      message,
+      status,
+      details,
+    });
+
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "AI_ERROR",
+        error: message,
+        status,
+        // keep details in prod too (trimmed) so you can diagnose in Vercel logs/UI
+        details:
+          details
+            ? typeof details === "string"
+              ? details.slice(0, 2000)
+              : details
+            : undefined,
+      },
+      { status: 500 }
+    );
+  }
 }
