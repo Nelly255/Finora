@@ -230,7 +230,7 @@ Give:
       );
     }
 
-    return json({ ok: true, text, model, requestId }, { status: 200 });
+    return json({ ok: true, summary: text, text, model, requestId }, { status: 200 });
   } catch (err: any) {
     const status = typeof err?.status === "number" ? err.status : 500;
     const details = err?.error ?? null;
