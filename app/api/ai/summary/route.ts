@@ -155,30 +155,11 @@ export async function POST(req: Request) {
     const rawKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "";
     const apiKey = rawKey.trim();
 
-    // TEMP DEBUG: helps confirm Vercel is injecting the expected key (does NOT log the full key)
-    console.log("[ai] key_check", {
-      present: !!apiKey,
-      rawLen: rawKey.length,
-      trimmedLen: apiKey.length,
-      startsWithQuote: rawKey.startsWith('"') || rawKey.startsWith("'"),
-      endsWithQuote: rawKey.endsWith('"') || rawKey.endsWith("'"),
-      end4: apiKey.slice(-4),
-      hadWhitespace: rawKey.length !== apiKey.length,
-    });
-
     if (!apiKey) {
       return NextResponse.json(
         { ok: false, error: "MISSING_API_KEY", message: "Set GEMINI_API_KEY (server env) in Vercel." },
         { status: 500 }
       );
-    }
-
-    // Safe diagnostics (does not log the key itself)
-    if (rawKey && rawKey !== apiKey) {
-      console.warn("[ai.summary] GEMINI_API_KEY had surrounding whitespace; trimmed.", { requestId, rawLen: rawKey.length, trimmedLen: apiKey.length });
-    }
-    if (rawKey.startsWith('"') || rawKey.startsWith("\'") || rawKey.endsWith('"') || rawKey.endsWith("\'")) {
-      console.warn("[ai.summary] GEMINI_API_KEY looks quoted in env; remove quotes in Vercel.", { requestId });
     }
 
     const ai = new GoogleGenAI({ apiKey });
