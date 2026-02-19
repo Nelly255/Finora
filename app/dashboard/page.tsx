@@ -436,6 +436,7 @@ export default function DashboardPage() {
   const [categoryId, setCategoryId] = useState<string>("");
 
   const [search, setSearch] = useState<string>("");
+  const [showAllRecent, setShowAllRecent] = useState<boolean>(false);
   const [reportStart, setReportStart] = useState<string>("");
   const [reportEnd, setReportEnd] = useState<string>("");
 
@@ -1429,6 +1430,13 @@ try {
     });
   }, [listTxns, search]);
 
+  const displayedList = useMemo(() => {
+    const q = search.trim();
+    if (q) return filteredList; // show all matches when searching
+    if (showAllRecent) return filteredList; // toggle to show all
+    return filteredList.slice(0, 2); // default: only 2
+  }, [filteredList, search, showAllRecent]);
+
   const balance = incomeTotal - expenseTotal;
 
   const savingsRate = incomeTotal > 0 ? (balance / incomeTotal) * 100 : 0;
@@ -2098,7 +2106,13 @@ const financialHealth = useMemo(() => {
             <div className="row-between">
               <div>
                 <h2 className="card-title">Recent Activity</h2>
-                <p className="card-subtitle">Last 50 transactions</p>
+                <p className="card-subtitle">
+                  {search.trim()
+                    ? `Search results (${displayedList.length})`
+                    : showAllRecent
+                      ? `Showing all (${filteredList.length})`
+                      : "Showing 2 of last 50"}
+                </p>
               </div>
             </div>
 
@@ -2112,7 +2126,7 @@ const financialHealth = useMemo(() => {
 
               {loading ? (
                 <div style={{ color: "var(--muted)" }}>Loading…</div>
-              ) : filteredList.length === 0 ? (
+              ) : displayedList.length === 0 ? (
                 <div style={{ color: "var(--muted)" }}>No transactions found.</div>
               ) : (
                 <div 
@@ -2123,7 +2137,20 @@ const financialHealth = useMemo(() => {
                     paddingRight: "8px" 
                   }}
                 >
-                  {filteredList.map((t) => {
+                                    {!search.trim() && filteredList.length > 2 && (
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        onClick={() => setShowAllRecent((v) => !v)}
+                        style={{ padding: "8px 12px", borderRadius: 10 }}
+                      >
+                        {showAllRecent ? "Show less" : `View all (${filteredList.length})`}
+                      </button>
+                    </div>
+                  )}
+
+{displayedList.map((t) => {
                     const isExpense = t.type === "expense";
                     const signedAmount = isExpense ? -Math.abs(t.amount) : Math.abs(t.amount);
 
