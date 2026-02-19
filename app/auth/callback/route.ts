@@ -1,49 +1,68 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+"use client";
 
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-  const errorDesc = url.searchParams.get("error_description");
-  const next = url.searchParams.get("next") ?? "/dashboard";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
-  if (errorDesc) {
-    return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(errorDesc)}`, url.origin)
-    );
-  }
+export default function AuthCallbackPage() {
+  const router = useRouter();
+  const [status, setStatus] = useState("Starting…");
 
-  if (!code) {
-    return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent("Missing OAuth code")}`, url.origin)
-    );
-  }
+  useEffect(() => {
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        const errorDesc = url.searchParams.get("error_description");
 
-  const cookieStore = await cookies();
+        if (errorDesc) {
+          setStatus("Provider error: " + errorDesc);
+          router.replace(`/login?error=${encodeURIComponent(errorDesc)}`);
+          return;
+        }
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (toSet) => {
-          toSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        },
-      },
-    }
+        if (!code) {
+          setStatus("No code in URL.");
+          router.replace("/login?error=" + encodeURIComponent("Missing OAuth code"));
+          return;
+        }
+
+        setStatus("Exchanging code for session…");
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (error) {
+          setStatus("Exchange error: " + error.message);
+          router.replace(`/login?error=${encodeURIComponent(error.message)}`);
+          return;
+        }
+
+        // small delay helps cookie/localStorage settle
+        await new Promise((r) => setTimeout(r, 250));
+
+        setStatus("Checking session…");
+        const { data } = await supabase.auth.getSession();
+
+        if (data.session) {
+          setStatus("✅ Session OK. Redirecting to dashboard…");
+          router.replace("/dashboard");
+        } else {
+          setStatus("❌ No session after exchange.");
+          router.replace("/login?error=" + encodeURIComponent("No session after exchange"));
+        }
+      } catch (e: any) {
+        const msg = e?.message ?? "Auth failed";
+        setStatus("Exception: " + msg);
+        router.replace(`/login?error=${encodeURIComponent(msg)}`);
+      }
+    })();
+  }, [router]);
+
+  return (
+    <main className="auth-shell">
+      <div className="auth-card card card-pad" style={{ maxWidth: 520 }}>
+        <h2 style={{ marginTop: 0 }}>Signing you in…</h2>
+        <p style={{ color: "var(--muted)" }}>{status}</p>
+      </div>
+    </main>
   );
-
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-  if (error) {
-    return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(error.message)}`, url.origin)
-    );
-  }
-
-  return NextResponse.redirect(new URL(next, url.origin));
 }
