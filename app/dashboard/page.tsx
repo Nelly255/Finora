@@ -436,7 +436,6 @@ export default function DashboardPage() {
   const [categoryId, setCategoryId] = useState<string>("");
 
   const [search, setSearch] = useState<string>("");
-  const [showAllRecent, setShowAllRecent] = useState<boolean>(false);
   const [reportStart, setReportStart] = useState<string>("");
   const [reportEnd, setReportEnd] = useState<string>("");
 
@@ -1433,9 +1432,8 @@ try {
   const displayedList = useMemo(() => {
     const q = search.trim();
     if (q) return filteredList; // show all matches when searching
-    if (showAllRecent) return filteredList; // toggle to show all
     return filteredList.slice(0, 2); // default: only 2
-  }, [filteredList, search, showAllRecent]);
+  }, [filteredList, search]);
 
   const balance = incomeTotal - expenseTotal;
 
@@ -2109,9 +2107,7 @@ const financialHealth = useMemo(() => {
                 <p className="card-subtitle">
                   {search.trim()
                     ? `Search results (${displayedList.length})`
-                    : showAllRecent
-                      ? `Showing all (${filteredList.length})`
-                      : "Showing 2 of last 50"}
+                    : "Showing 2 of last 50"}
                 </p>
               </div>
             </div>
@@ -2139,14 +2135,13 @@ const financialHealth = useMemo(() => {
                 >
                                     {!search.trim() && filteredList.length > 2 && (
                     <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
-                      <button
-                        type="button"
+                      <Link
+                        href="/transactions"
                         className="btn btn-ghost"
-                        onClick={() => setShowAllRecent((v) => !v)}
                         style={{ padding: "8px 12px", borderRadius: 10 }}
                       >
-                        {showAllRecent ? "Show less" : `View all (${filteredList.length})`}
-                      </button>
+                        {`View all (${filteredList.length})`}
+                      </Link>
                     </div>
                   )}
 
